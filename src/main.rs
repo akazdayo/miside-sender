@@ -3,13 +3,12 @@ use rosc::{OscBundle, OscMessage, OscPacket, OscType};
 use rosc::{OscTime, encoder};
 use std::net::UdpSocket;
 use std::time::UNIX_EPOCH;
-use thiserror::Error;
 
 fn main() -> Result<()> {
     let socket = UdpSocket::bind("127.0.0.1:0").expect("Cannot bind local socket");
     let target_addr = "127.0.0.1:8125";
 
-    let msg = convert_message("猫".as_bytes())?;
+    let msg = convert_message(&to_fixed4("猫"))?;
     // パケット（メッセージ）をバイト配列にエンコード
     let packet = OscPacket::Bundle(OscBundle {
         timetag: OscTime::try_from(UNIX_EPOCH)?,
@@ -25,23 +24,23 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Error, Debug)]
-pub enum ConvertMessageError {
-    #[error("Invalid input")]
-    InvalidInput(),
+fn to_fixed4(s: &str) -> [u8; 4] {
+    let bytes = s.as_bytes();
+    let mut out = [0u8; 4];
+
+    let len = bytes.len().min(4);
+    out[..len].copy_from_slice(&bytes[..len]);
+
+    out
 }
 
-fn convert_message(data: &[u8]) -> Result<Vec<OscPacket>, ConvertMessageError> {
+fn convert_message(data: &[u8; 4]) -> Result<Vec<OscPacket>> {
     let all_addr = [
         "/avatar/parameters/bytes0",
         "/avatar/parameters/bytes1",
         "/avatar/parameters/bytes2",
         "/avatar/parameters/bytes3",
     ];
-
-    if data.len() >= 5 {
-        return Err(ConvertMessageError::InvalidInput());
-    }
 
     let messages = data
         .iter()
