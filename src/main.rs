@@ -8,7 +8,7 @@ fn main() -> Result<()> {
     let socket = UdpSocket::bind("127.0.0.1:0").expect("Cannot bind local socket");
     let target_addr = "127.0.0.1:8125";
 
-    let msg = convert_message(&to_fixed4("猫"))?;
+    let msg = convert_message(&to_fixed4('猫'))?;
     // パケット（メッセージ）をバイト配列にエンコード
     let packet = OscPacket::Bundle(OscBundle {
         timetag: OscTime::try_from(UNIX_EPOCH)?,
@@ -24,13 +24,9 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn to_fixed4(s: &str) -> [u8; 4] {
-    let bytes = s.as_bytes();
+fn to_fixed4(c: char) -> [u8; 4] {
     let mut out = [0u8; 4];
-
-    let len = bytes.len().min(4);
-    out[..len].copy_from_slice(&bytes[..len]);
-
+    c.encode_utf8(&mut out);
     out
 }
 
@@ -53,4 +49,24 @@ fn convert_message(data: &[u8; 4]) -> Result<Vec<OscPacket>> {
         })
         .collect::<Vec<_>>();
     Ok(messages)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::to_fixed4;
+
+    #[test]
+    fn encodes_a_char_as_zero_padded_utf8() {
+        let encode: fn(char) -> [u8; 4] = to_fixed4;
+        for (c, expected) in [
+            ('A', [0x41, 0, 0, 0]),
+            ('é', [0xC3, 0xA9, 0, 0]),
+            ('猫', [0xE7, 0x8C, 0xAB, 0]),
+            ('😀', [0xF0, 0x9F, 0x98, 0x80]),
+            ('\0', [0, 0, 0, 0]),
+            ('\u{10FFFF}', [0xF4, 0x8F, 0xBF, 0xBF]),
+        ] {
+            assert_eq!(encode(c), expected, "incorrect encoding for {c:?}");
+        }
+    }
 }
