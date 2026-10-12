@@ -5,6 +5,14 @@ use std::net::UdpSocket;
 use std::time::Duration;
 
 fn main() -> Result<()> {
+    if std::env::args().nth(1).as_deref() == Some("--transcribe") {
+        let status = std::process::Command::new("python3")
+            .arg("-c")
+            .arg(include_str!("transcribe.py"))
+            .args(std::env::args().skip(2))
+            .status()?;
+        std::process::exit(status.code().unwrap_or(1));
+    }
     let socket = UdpSocket::bind("127.0.0.1:0").expect("Cannot bind local socket");
     let target_addr = "127.0.0.1:9000";
 

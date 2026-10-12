@@ -29,6 +29,8 @@
           mkShell {
             buildInputs = [
               rust-bin.beta.latest.default
+              (python3.withPackages (ps: [ ps.websockets ]))
+              pipewire
             ];
           };
       }
