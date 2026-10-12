@@ -29,9 +29,30 @@
           mkShell {
             buildInputs = [
               rust-bin.beta.latest.default
-              (python3.withPackages (ps: [ ps.websockets ]))
-              pipewire
+              pkg-config
+              alsa-lib
             ];
+          };
+
+        devShells.windows =
+          let
+            cross = pkgs.pkgsCross.mingwW64;
+            prefix = cross.stdenv.cc.targetPrefix;
+          in
+          pkgs.mkShell {
+            packages = [
+              (pkgs.rust-bin.beta.latest.default.override {
+                targets = [ "x86_64-pc-windows-gnu" ];
+              })
+              cross.stdenv.cc
+              cross.stdenv.cc.bintools
+            ];
+
+            CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = "${prefix}gcc";
+            CC_x86_64_pc_windows_gnu = "${prefix}gcc";
+            AR_x86_64_pc_windows_gnu = "${prefix}ar";
+            CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS =
+              "-L native=${pkgs.lib.getLib cross.windows.pthreads}/lib";
           };
       }
     );
