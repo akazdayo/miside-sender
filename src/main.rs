@@ -18,7 +18,7 @@ pub struct Args {
     /// --list-devicesで表示される入力デバイス名
     #[arg(long)]
     device: Option<String>,
-    #[arg(long, default_value = "voxtral-mini-transcribe-realtime-2602")]
+    #[arg(long, default_value = "voxtral-mini-transcribe-realtime-3-0")]
     model: String,
     #[arg(long, default_value = "127.0.0.1")]
     osc_host: String,
