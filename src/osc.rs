@@ -33,11 +33,13 @@ impl Sender {
                 .send(&encoder::encode(&character_packet(character))?)
                 .await?;
             sleep(Duration::from_millis(60)).await;
-            self.revision = self.revision.wrapping_add(1);
+            self.revision = (self.revision + 1) % 8;
             self.socket
                 .send(&encoder::encode(&OscPacket::Message(OscMessage {
-                    addr: "/avatar/parameters/MiSide/Revision".into(),
-                    args: vec![OscType::Int(self.revision.into())],
+                    addr: "/avatar/parameters/MiSide/CodeTop".into(),
+                    args: vec![OscType::Int(
+                        ((self.revision as u32) << 5 | ((character as u32) >> 16)) as i32,
+                    )],
                 }))?)
                 .await?;
             sleep(interval).await;
@@ -59,7 +61,7 @@ fn to_fixed3(c: char) -> [u8; 3] {
 }
 
 fn character_packet(character: char) -> OscPacket {
-    let content = ["CodeLo", "CodeHi", "CodeTop"]
+    let content = ["CodeLo", "CodeHi"]
         .into_iter()
         .zip(to_fixed3(character))
         .map(|(name, value)| {
@@ -99,15 +101,15 @@ mod tests {
         let mut sender = Sender::connect("127.0.0.1", receiver.local_addr().unwrap().port())
             .await
             .unwrap();
-        sender.revision = 254;
+        sender.revision = 6;
         sender.send_text("猫猫😀", Duration::ZERO).await.unwrap();
         let mut buffer = [0; 1024];
-        for (character, revision) in "猫猫😀".chars().zip([255, 0, 1]) {
+        for (character, revision) in "猫猫😀".chars().zip([7, 0, 1]) {
             for expected in [
                 character_packet(character),
                 OscPacket::Message(OscMessage {
-                    addr: "/avatar/parameters/MiSide/Revision".into(),
-                    args: vec![OscType::Int(revision)],
+                    addr: "/avatar/parameters/MiSide/CodeTop".into(),
+                    args: vec![OscType::Int((revision << 5) | ((character as i32) >> 16))],
                 }),
             ] {
                 let length =
